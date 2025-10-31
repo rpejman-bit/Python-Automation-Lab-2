@@ -1,0 +1,33 @@
+import os
+import geopandas as gpd
+import pandas as pd
+os.getcwd()
+
+
+#Part1
+path = "./lab2.gpkg"
+layers = gpd.list_layers(path)["name"]
+soil_layers = layers[0:9]
+table_layers = layers[10:]
+watershed_layers=layers[9]
+merged_tables_list = []
+for soil_layer, table_layer in zip(soil_layers, table_layers):
+soil = gpd.read_file(path, layer=soil_layer)
+soil = soil.rename(columns={"MUSYM":"musym"})
+table = gpd.read_file(path, layer=table_layer)
+merged_table = soil.merge(table, on="musym")
+mapunit = soil_layer[-5:]
+mapunit_list = [mapunit for i in range(len(merged_table))]
+merged_table["mapunit"] = mapunit_list
+merged_tables_list.append(merged_table)
+final_df = pd.concat(merged_tables_list)
+
+#Step 4: Intersect the merged feature class with the watershed boundaries
+watershed=gpd.read_file(path,layer=watershed_layers)
+intersect_watershed=final_df.overlay(watershed,how="intersection")
+
+#Part2
+watershed_count=intersect_watershed.groupby('HUC8').size()
+print(f"There are {watershed_count[10190005]} features intersecting with watershed
+St Vrain and {watershed_count[10190006]} features intersecting with watershed Big
+Thompson")
